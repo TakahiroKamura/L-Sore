@@ -2,7 +2,6 @@
     "name": "l-sore",
     "compatibility_date": "2025-12-23",
     "assets": {
-        "directory": ".",
-        "binding": "ASSETS"
+        "directory": "."
     }
 }
