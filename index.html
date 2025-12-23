@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="お題ゲームメーカー - オリジナルお題を作成して楽しもう！">
+    <meta name="theme-color" content="#1976d2">
+    <title>お題ゲーム：エルそれ！</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icon-192.png">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>エルそれ！</h1>
+            <p>～エルバニアではそれ正解～</p>
+        </header>
+
+        <main>
+            <!-- 設定セクション -->
+            <section class="settings-section">
+                <h2>設定</h2>
+                <div class="form-group">
+                    <label for="appTitle">アプリのタイトル：</label>
+                    <input type="text" id="appTitle" placeholder="【ゲーム中】">
+                </div>
+                <div class="form-group">
+                    <label for="streamUrl">配信のURL：</label>
+                    <input type="text" id="streamUrl" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label for="hashtag">ハッシュタグ：</label>
+                    <input type="text" id="hashtag" placeholder="#お題ゲーム">
+                </div>
+            </section>
+
+            <!-- お題作成セクション -->
+            <section class="topic-section">
+                <h2>お題管理</h2>
+                <div class="form-group">
+                    <label for="topicInput">お題を入力：</label>
+                    <textarea id="topicInput" rows="3" placeholder="例：(あ)から始まる(食べ物)といえば？"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="topicWeight">確率調整（重み）：</label>
+                    <input type="number" id="topicWeight" value="1" min="1" max="10">
+                    <small>1〜10の数値（大きいほど出やすい）</small>
+                </div>
+                <button id="addTopicBtn" class="btn btn-primary">お題を追加</button>
+
+                <div class="io-section">
+                    <h3>データ管理</h3>
+                    <div class="io-buttons">
+                        <button id="exportJsonBtn" class="btn btn-secondary">JSONエクスポート</button>
+                        <button id="exportCsvBtn" class="btn btn-secondary">CSVエクスポート</button>
+                        <label for="importFile" class="btn btn-secondary" style="margin: 0; cursor: pointer;">
+                            インポート
+                            <input type="file" id="importFile" accept=".json,.csv" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="topic-list">
+                    <h3>登録済みお題</h3>
+                    <div id="topicListContainer"></div>
+                </div>
+            </section>
+
+            <!-- 抽選セクション -->
+            <section class="draw-section">
+                <h2>抽選</h2>
+                <div class="form-group">
+                    <label for="maxDraw">最大抽選数：</label>
+                    <input type="number" id="maxDraw" value="1" min="1" max="10">
+                </div>
+                <button id="drawBtn" class="btn btn-primary btn-large">お題を抽選する</button>
+
+                <div id="resultContainer" class="result-container" style="display: none;">
+                    <h3>抽選結果</h3>
+                    <div id="resultList"></div>
+                    <button id="copyBtn" class="btn btn-secondary">結果をコピー</button>
+                </div>
+            </section>
+
+            <!-- 履歴セクション -->
+            <section class="history-section">
+                <h2>抽選履歴</h2>
+                <button id="clearHistoryBtn" class="btn btn-secondary">履歴をクリア</button>
+                <div id="historyContainer"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>(c) PMK 2025</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Service Workerの登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registered:', reg))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
