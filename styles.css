@@ -344,6 +344,36 @@ footer {
         padding: 15px;
     }
 
+    .result-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .result-topic {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .result-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .result-actions .btn {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    .draw-buttons {
+        flex-direction: column;
+    }
+
+    .draw-buttons .btn {
+        width: 100%;
+    }
+
     .topic-list-item {
         flex-direction: column;
         align-items: flex-start;

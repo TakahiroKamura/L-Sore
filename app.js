@@ -71,11 +71,6 @@ class OdaiGameMaker {
             this.drawMaxTopics();
         });
 
-        // コピーボタン
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            this.copyResults();
-        });
-
         // 結果クリアボタン
         document.getElementById('clearResultBtn').addEventListener('click', () => {
             this.clearResults();
@@ -232,28 +227,6 @@ class OdaiGameMaker {
             this.currentResults = [];
             this.renderResults();
         }
-    }
-
-    // 結果をコピー（全体）
-    copyResults() {
-        if (this.currentResults.length === 0) {
-            alert('抽選結果がありません');
-            return;
-        }
-
-        const texts = this.currentResults.map(result => {
-            const memo = result.memo ? `\nメモ: ${result.memo}` : '';
-            return `【${this.settings.appTitle}】お題「${result.text}」を使ってゲーム中！　気になった人はこちら！${this.settings.streamUrl} ${this.settings.hashtag}${memo}`;
-        });
-
-        const copyText = texts.join('\n\n');
-
-        navigator.clipboard.writeText(copyText).then(() => {
-            alert('クリップボードにコピーしました！');
-        }).catch(err => {
-            console.error('コピーに失敗しました:', err);
-            alert('コピーに失敗しました');
-        });
     }
 
     // 個別の結果をコピー
