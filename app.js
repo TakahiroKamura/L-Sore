@@ -1,8 +1,7 @@
 // アプリケーション状態
 class OdaiGameMaker {
     constructor() {
-        this.topics = [];
-        this.history = [];
+        this.data = null; // data.jsonから読み込むデータ
         this.currentResults = [];
         this.settings = {
             appTitle: 'お題ゲームメーカー',
@@ -12,25 +11,29 @@ class OdaiGameMaker {
         this.init();
     }
 
-    init() {
+    async init() {
+        await this.loadData();
         this.loadFromStorage();
         this.setupEventListeners();
-        this.render();
+    }
+
+    // data.jsonからデータを読み込み
+    async loadData() {
+        try {
+            const response = await fetch('data.json');
+            this.data = await response.json();
+            console.log('data.json loaded:', this.data);
+        } catch (error) {
+            console.error('data.jsonの読み込みに失敗しました:', error);
+            alert('データの読み込みに失敗しました');
+        }
     }
 
     // LocalStorageからデータを読み込み
     loadFromStorage() {
         try {
-            const savedTopics = localStorage.getItem('odai_topics');
-            const savedHistory = localStorage.getItem('odai_history');
             const savedSettings = localStorage.getItem('odai_settings');
 
-            if (savedTopics) {
-                this.topics = JSON.parse(savedTopics);
-            }
-            if (savedHistory) {
-                this.history = JSON.parse(savedHistory);
-            }
             if (savedSettings) {
                 this.settings = JSON.parse(savedSettings);
                 this.applySettings();
@@ -43,8 +46,6 @@ class OdaiGameMaker {
     // LocalStorageにデータを保存
     saveToStorage() {
         try {
-            localStorage.setItem('odai_topics', JSON.stringify(this.topics));
-            localStorage.setItem('odai_history', JSON.stringify(this.history));
             localStorage.setItem('odai_settings', JSON.stringify(this.settings));
         } catch (error) {
             console.error('データの保存に失敗しました:', error);
@@ -60,14 +61,14 @@ class OdaiGameMaker {
 
     // イベントリスナーの設定
     setupEventListeners() {
-        // お題追加ボタン
-        document.getElementById('addTopicBtn').addEventListener('click', () => {
-            this.addTopic();
+        // 抽選ボタン（1つ追加）
+        document.getElementById('drawOneBtn').addEventListener('click', () => {
+            this.drawOneTopic();
         });
 
-        // 抽選ボタン
-        document.getElementById('drawBtn').addEventListener('click', () => {
-            this.drawTopics();
+        // 一括抽選ボタン（満枠まで追加）
+        document.getElementById('drawMaxBtn').addEventListener('click', () => {
+            this.drawMaxTopics();
         });
 
         // コピーボタン
@@ -75,24 +76,9 @@ class OdaiGameMaker {
             this.copyResults();
         });
 
-        // 履歴クリアボタン
-        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-            this.clearHistory();
-        });
-
-        // エクスポートボタン
-        document.getElementById('exportJsonBtn').addEventListener('click', () => {
-            this.exportJson();
-        });
-
-        document.getElementById('exportCsvBtn').addEventListener('click', () => {
-            this.exportCsv();
-        });
-
-        // インポートファイル
-        document.getElementById('importFile').addEventListener('change', (e) => {
-            this.importFile(e.target.files[0]);
-            e.target.value = ''; // リセット
+        // 結果クリアボタン
+        document.getElementById('clearResultBtn').addEventListener('click', () => {
+            this.clearResults();
         });
 
         // 設定の変更を監視
@@ -107,125 +93,148 @@ class OdaiGameMaker {
         });
     }
 
-    // お題を追加
-    addTopic() {
-        const input = document.getElementById('topicInput');
-        const weightInput = document.getElementById('topicWeight');
-        const text = input.value.trim();
-        const weight = parseInt(weightInput.value) || 1;
-
-        if (!text) {
-            alert('お題を入力してください');
-            return;
+    // data.jsonからランダムにお題を生成
+    generateTopic() {
+        if (!this.data || !this.data.initial || !this.data.words) {
+            console.error('データが読み込まれていません');
+            return null;
         }
 
-        const topic = {
-            id: Date.now(),
-            text: text,
-            weight: Math.max(1, Math.min(10, weight)), // 1-10の範囲に制限
-            createdAt: new Date().toISOString()
+        // initialからランダムに選択（rareの確率を考慮）
+        const initial = this.weightedRandomSelect(this.data.initial);
+
+        // wordsからランダムに選択（rareの確率を考慮）
+        const word = this.weightedRandomSelect(this.data.words);
+
+        if (!initial || !word) {
+            return null;
+        }
+
+        // 低確率（10%）で逆回答モード
+        const isReverse = Math.random() < 0.1;
+
+        // 逆回答の場合はnotを使用、通常はnormalまたはnotをランダムに選択
+        let wordText;
+        if (isReverse) {
+            wordText = word.not;
+        } else {
+            wordText = Math.random() < 0.5 ? word.normal : word.not;
+        }
+
+        // テンプレート: (initial.key)から始まる(word)といえば？
+        return {
+            text: `「${initial.key}」から始まる「${wordText}」といえば？`,
+            isReverse: isReverse
         };
-
-        this.topics.push(topic);
-        this.saveToStorage();
-
-        input.value = '';
-        weightInput.value = 1;
-
-        this.renderTopicList();
     }
 
-    // お題を削除
-    deleteTopic(id) {
-        if (confirm('このお題を削除しますか？')) {
-            this.topics = this.topics.filter(t => t.id !== id);
-            this.saveToStorage();
-            this.renderTopicList();
+    // 重み付きランダム選択（rareの値に基づく）
+    // initialとwordsの両方でrareキーを考慮
+    // rare=0: 通常の出現率（重み10）
+    // rare=1: 低確率（重み3）
+    // rare=2: 極低確率（重み1）
+    weightedRandomSelect(items) {
+        if (!items || items.length === 0) return null;
+
+        // rare値に基づいて重みを計算
+        const weights = items.map(item => {
+            const rare = item.rare || 0;
+            return Math.max(1, 10 - rare * 3);
+        });
+
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        let random = Math.random() * totalWeight;
+
+        for (let i = 0; i < items.length; i++) {
+            random -= weights[i];
+            if (random <= 0) {
+                return items[i];
+            }
         }
+
+        return items[0]; // フォールバック
     }
 
-    // お題を抽選（重み付き抽選）
-    drawTopics() {
-        const maxDraw = parseInt(document.getElementById('maxDraw').value) || 1;
+    // お題を1つ抽選（既存の結果に追加）
+    drawOneTopic() {
+        const maxDraw = parseInt(document.getElementById('maxDraw').value) || 5;
 
-        if (this.topics.length === 0) {
-            alert('お題が登録されていません');
+        if (!this.data) {
+            alert('データが読み込まれていません');
             return;
         }
 
-        const count = Math.min(maxDraw, this.topics.length);
-        const drawn = this.weightedRandomDraw(this.topics, count);
+        // 現在の結果数が最大数に達していないかチェック
+        if (this.currentResults.length >= maxDraw) {
+            alert(`最大抽選数（${maxDraw}個）に達しています`);
+            return;
+        }
 
-        this.currentResults = drawn.map(topic => ({
-            ...topic,
+        const topic = this.generateTopic();
+        if (!topic) {
+            alert('お題の生成に失敗しました');
+            return;
+        }
+
+        // 既存の結果に追加
+        this.currentResults.push({
+            id: Date.now(),
+            text: topic.text,
+            isReverse: topic.isReverse,
             memo: '',
             drawnAt: new Date()
-        }));
-
-        // 履歴に追加
-        this.addToHistory(this.currentResults);
+        });
 
         this.renderResults();
     }
 
-    // 重み付きランダム抽選
-    weightedRandomDraw(topics, count) {
-        const available = [...topics];
-        const results = [];
+    // お題を最大数まで一括抽選（既存の結果に追加）
+    drawMaxTopics() {
+        const maxDraw = parseInt(document.getElementById('maxDraw').value) || 5;
 
-        for (let i = 0; i < count && available.length > 0; i++) {
-            // 重みの合計を計算
-            const totalWeight = available.reduce((sum, topic) => sum + topic.weight, 0);
+        if (!this.data) {
+            alert('データが読み込まれていません');
+            return;
+        }
 
-            // ランダムな値を生成
-            let random = Math.random() * totalWeight;
+        // 現在の結果数から、あと何個追加できるかを計算
+        const remainingSlots = maxDraw - this.currentResults.length;
 
-            // 重みに基づいて選択
-            let selectedIndex = 0;
-            for (let j = 0; j < available.length; j++) {
-                random -= available[j].weight;
-                if (random <= 0) {
-                    selectedIndex = j;
-                    break;
-                }
+        if (remainingSlots <= 0) {
+            alert(`最大抽選数（${maxDraw}個）に達しています`);
+            return;
+        }
+
+        // 残りのスロット数だけお題を生成
+        for (let i = 0; i < remainingSlots; i++) {
+            const topic = this.generateTopic();
+            if (topic) {
+                this.currentResults.push({
+                    id: Date.now() + i,
+                    text: topic.text,
+                    isReverse: topic.isReverse,
+                    memo: '',
+                    drawnAt: new Date()
+                });
             }
-
-            results.push(available[selectedIndex]);
-            available.splice(selectedIndex, 1); // 重複を避ける
         }
 
-        return results;
+        this.renderResults();
     }
 
-    // 履歴に追加
-    addToHistory(results) {
-        const historyEntry = {
-            id: Date.now(),
-            results: results,
-            timestamp: new Date().toISOString()
-        };
-
-        this.history.unshift(historyEntry);
-
-        // 履歴は最大50件まで
-        if (this.history.length > 50) {
-            this.history = this.history.slice(0, 50);
+    // 結果をクリア
+    clearResults() {
+        if (this.currentResults.length === 0) {
+            return;
         }
 
-        this.saveToStorage();
-        this.renderHistory();
-    }
-
-    // 履歴をクリア
-    clearHistory() {
-        if (confirm('履歴をすべて削除しますか？')) {
-            this.history = [];
-            this.saveToStorage();
-            this.renderHistory();
+        if (confirm('抽選結果をクリアしますか？')) {
+            this.currentResults = [];
+            this.renderResults();
         }
     }
 
-    // 結果をコピー
+    // 結果をコピー（全体）
     copyResults() {
         if (this.currentResults.length === 0) {
             alert('抽選結果がありません');
@@ -247,6 +256,25 @@ class OdaiGameMaker {
         });
     }
 
+    // 個別の結果をコピー
+    copySingleResult(index) {
+        if (!this.currentResults[index]) {
+            alert('お題が見つかりません');
+            return;
+        }
+
+        const result = this.currentResults[index];
+        const memo = result.memo ? `\nメモ: ${result.memo}` : '';
+        const copyText = `【${this.settings.appTitle}】お題「${result.text}」を使ってゲーム中！　気になった人はこちら！${this.settings.streamUrl} ${this.settings.hashtag}${memo}`;
+
+        navigator.clipboard.writeText(copyText).then(() => {
+            alert('クリップボードにコピーしました！');
+        }).catch(err => {
+            console.error('コピーに失敗しました:', err);
+            alert('コピーに失敗しました');
+        });
+    }
+
     // メモを更新
     updateMemo(index, memo) {
         if (this.currentResults[index]) {
@@ -256,215 +284,27 @@ class OdaiGameMaker {
 
     // 特定のお題を再抽選
     redrawTopic(index) {
-        if (this.topics.length === 0) {
-            alert('お題が登録されていません');
+        if (!this.data) {
+            alert('データが読み込まれていません');
             return;
         }
 
-        // 現在の結果から除外されたお題リストを作成
-        const currentTopicIds = this.currentResults.map(r => r.id);
-        const availableTopics = this.topics.filter(t => !currentTopicIds.includes(t.id) || t.id === this.currentResults[index].id);
-
-        if (availableTopics.length === 0) {
-            alert('他に抽選可能なお題がありません');
+        const newTopic = this.generateTopic();
+        if (!newTopic) {
+            alert('お題の生成に失敗しました');
             return;
         }
-
-        // 1つだけ再抽選
-        const drawn = this.weightedRandomDraw(availableTopics, 1)[0];
 
         // 結果を更新
         this.currentResults[index] = {
-            ...drawn,
+            id: Date.now(),
+            text: newTopic.text,
+            isReverse: newTopic.isReverse,
             memo: this.currentResults[index].memo || '', // メモは保持
             drawnAt: new Date()
         };
 
         this.renderResults();
-    }
-
-    // JSONエクスポート
-    exportJson() {
-        const data = {
-            topics: this.topics,
-            settings: this.settings,
-            exportedAt: new Date().toISOString()
-        };
-
-        const dataStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `odai-topics-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        alert('JSONファイルをエクスポートしました');
-    }
-
-    // CSVエクスポート
-    exportCsv() {
-        if (this.topics.length === 0) {
-            alert('お題が登録されていません');
-            return;
-        }
-
-        // CSVヘッダー
-        let csv = 'お題,重み\n';
-
-        // データ行
-        this.topics.forEach(topic => {
-            const text = topic.text.replace(/"/g, '""'); // ダブルクォートのエスケープ
-            csv += `"${text}",${topic.weight}\n`;
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `odai-topics-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        alert('CSVファイルをエクスポートしました');
-    }
-
-    // ファイルインポート
-    async importFile(file) {
-        if (!file) return;
-
-        const fileType = file.name.split('.').pop().toLowerCase();
-
-        try {
-            const text = await file.text();
-
-            if (fileType === 'json') {
-                this.importJson(text);
-            } else if (fileType === 'csv') {
-                this.importCsv(text);
-            } else {
-                alert('対応していないファイル形式です。.json または .csv ファイルを選択してください。');
-            }
-        } catch (error) {
-            console.error('ファイルの読み込みに失敗しました:', error);
-            alert('ファイルの読み込みに失敗しました');
-        }
-    }
-
-    // JSONインポート
-    importJson(jsonText) {
-        try {
-            const data = JSON.parse(jsonText);
-
-            if (!data.topics || !Array.isArray(data.topics)) {
-                alert('無効なJSONファイルです');
-                return;
-            }
-
-            const importCount = data.topics.length;
-
-            if (confirm(`${importCount}件のお題をインポートしますか？\n既存のお題に追加されます。`)) {
-                // 既存のIDと重複しないように新しいIDを割り当て
-                data.topics.forEach(topic => {
-                    this.topics.push({
-                        ...topic,
-                        id: Date.now() + Math.random(), // 一意のIDを生成
-                        createdAt: topic.createdAt || new Date().toISOString()
-                    });
-                });
-
-                // 設定もインポートする場合
-                if (data.settings && confirm('設定もインポートしますか？')) {
-                    this.settings = { ...this.settings, ...data.settings };
-                    this.applySettings();
-                }
-
-                this.saveToStorage();
-                this.render();
-                alert(`${importCount}件のお題をインポートしました`);
-            }
-        } catch (error) {
-            console.error('JSONの解析に失敗しました:', error);
-            alert('JSONファイルの形式が正しくありません');
-        }
-    }
-
-    // CSVインポート
-    importCsv(csvText) {
-        try {
-            const lines = csvText.split('\n').filter(line => line.trim());
-
-            // ヘッダー行をスキップ
-            const dataLines = lines[0].includes('お題') ? lines.slice(1) : lines;
-
-            if (dataLines.length === 0) {
-                alert('CSVファイルにデータがありません');
-                return;
-            }
-
-            const topics = [];
-            dataLines.forEach(line => {
-                // CSVパース（簡易版）
-                const match = line.match(/^"(.+)",(\d+)$/) || line.match(/^([^,]+),(\d+)$/);
-                if (match) {
-                    const text = match[1].replace(/""/g, '"').trim();
-                    const weight = parseInt(match[2]) || 1;
-
-                    if (text) {
-                        topics.push({
-                            id: Date.now() + Math.random(),
-                            text: text,
-                            weight: Math.max(1, Math.min(10, weight)),
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                }
-            });
-
-            if (topics.length === 0) {
-                alert('インポート可能なデータが見つかりませんでした');
-                return;
-            }
-
-            if (confirm(`${topics.length}件のお題をインポートしますか？\n既存のお題に追加されます。`)) {
-                this.topics.push(...topics);
-                this.saveToStorage();
-                this.render();
-                alert(`${topics.length}件のお題をインポートしました`);
-            }
-        } catch (error) {
-            console.error('CSVの解析に失敗しました:', error);
-            alert('CSVファイルの形式が正しくありません');
-        }
-    }
-
-    // 画面を更新
-    render() {
-        this.renderTopicList();
-        this.renderHistory();
-    }
-
-    // お題リストを描画
-    renderTopicList() {
-        const container = document.getElementById('topicListContainer');
-
-        if (this.topics.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-
-        container.innerHTML = this.topics.map(topic => `
-            <div class="topic-list-item">
-                <div class="topic-content">
-                    <div class="topic-text">${this.escapeHtml(topic.text)}</div>
-                    <div class="topic-weight">重み: ${topic.weight}</div>
-                </div>
-                <div class="topic-actions">
-                    <button class="btn btn-danger" onclick="app.deleteTopic(${topic.id})">削除</button>
-                </div>
-            </div>
-        `).join('');
     }
 
     // 抽選結果を描画
@@ -478,11 +318,16 @@ class OdaiGameMaker {
         }
 
         container.style.display = 'block';
-        resultList.innerHTML = this.currentResults.map((result, index) => `
-            <div class="result-item">
+        resultList.innerHTML = this.currentResults.map((result, index) => {
+            const reverseClass = result.isReverse ? ' reverse' : '';
+            return `
+            <div class="result-item${reverseClass}">
                 <div class="result-header">
                     <div class="result-topic">${this.escapeHtml(result.text)}</div>
-                    <button class="btn btn-redraw" onclick="app.redrawTopic(${index})">再抽選</button>
+                    <div class="result-actions">
+                        <button class="btn btn-redraw" onclick="app.redrawTopic(${index})">再抽選</button>
+                        <button class="btn btn-secondary" onclick="app.copySingleResult(${index})">コピー</button>
+                    </div>
                 </div>
                 <div class="result-memo">
                     <label>メモ・備考：</label>
@@ -493,29 +338,7 @@ class OdaiGameMaker {
                     >${result.memo || ''}</textarea>
                 </div>
             </div>
-        `).join('');
-    }
-
-    // 履歴を描画
-    renderHistory() {
-        const container = document.getElementById('historyContainer');
-
-        if (this.history.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-
-        container.innerHTML = this.history.map(entry => {
-            const date = new Date(entry.timestamp);
-            const dateStr = date.toLocaleString('ja-JP');
-            const topics = entry.results.map(r => r.text).join(', ');
-
-            return `
-                <div class="history-item">
-                    <div class="history-time">${dateStr}</div>
-                    <div class="history-topic">${this.escapeHtml(topics)}</div>
-                </div>
-            `;
+        `;
         }).join('');
     }
 
