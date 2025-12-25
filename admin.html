@@ -34,15 +34,34 @@
             border-radius: 8px;
             border: 2px solid #e0e0e0;
             display: grid;
-            grid-template-columns: 1fr 1fr auto;
+            grid-template-columns: 2fr 2fr 80px auto;
             gap: 10px;
             align-items: center;
         }
 
-        .word-item input {
+        .word-item input[type="text"] {
             padding: 8px;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
+            min-width: 0;
+        }
+
+        .word-item input[type="number"] {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .rare-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rare-input label {
+            font-size: 0.75rem;
+            color: #666;
         }
 
         .word-actions {
@@ -59,9 +78,24 @@
 
         .add-form-inputs {
             display: grid;
-            grid-template-columns: 1fr 1fr auto;
+            grid-template-columns: 2fr 2fr 80px auto;
             gap: 10px;
             align-items: end;
+        }
+
+        @media (max-width: 768px) {
+            .word-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .add-form-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .word-actions {
+                justify-content: flex-end;
+            }
         }
 
         .toolbar {
@@ -116,6 +150,11 @@
                         <div class="form-group">
                             <label>逆：</label>
                             <input type="text" id="newNot" placeholder="例: かたくないもの">
+                        </div>
+                        <div class="form-group">
+                            <label>Rare：</label>
+                            <input type="number" id="newRare" value="0" min="0" max="2">
+                            <small>0:通常 1:低確率 2:極低</small>
                         </div>
                         <button class="btn btn-primary" onclick="addWord()">追加</button>
                     </div>

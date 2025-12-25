@@ -72,6 +72,12 @@ function renderWordList() {
             <input type="text" value="${escapeHtml(word.not)}" 
                    onchange="updateWord(${index}, 'not', this.value)" 
                    placeholder="逆">
+            <div class="rare-input">
+                <label>Rare</label>
+                <input type="number" value="${word.rare || 0}" 
+                       onchange="updateWord(${index}, 'rare', parseInt(this.value))" 
+                       min="0" max="2">
+            </div>
             <div class="word-actions">
                 <button class="btn btn-danger btn-small" onclick="deleteWord(${index})">削除</button>
             </div>
@@ -83,6 +89,7 @@ function renderWordList() {
 function addWord() {
     const normal = document.getElementById('newNormal').value.trim();
     const not = document.getElementById('newNot').value.trim();
+    const rare = parseInt(document.getElementById('newRare').value) || 0;
 
     if (!normal || !not) {
         alert('通常と逆の両方を入力してください');
@@ -92,12 +99,13 @@ function addWord() {
     data.words.push({
         normal: normal,
         not: not,
-        rare: 0
+        rare: rare
     });
 
     // 入力欄をクリア
     document.getElementById('newNormal').value = '';
     document.getElementById('newNot').value = '';
+    document.getElementById('newRare').value = '0';
 
     renderWordList();
 }
