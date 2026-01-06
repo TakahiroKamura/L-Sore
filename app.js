@@ -76,6 +76,11 @@ class OdaiGameMaker {
             this.clearResults();
         });
 
+        // ログダウンロードボタン
+        document.getElementById('downloadLogBtn').addEventListener('click', () => {
+            this.downloadLog();
+        });
+
         // 設定の変更を監視
         ['appTitle', 'streamUrl', 'hashtag'].forEach(id => {
             document.getElementById(id).addEventListener('change', (e) => {
@@ -227,6 +232,48 @@ class OdaiGameMaker {
             this.currentResults = [];
             this.renderResults();
         }
+    }
+
+    // ログをテキストファイルとしてダウンロード
+    downloadLog() {
+        if (this.currentResults.length === 0) {
+            alert('抽選結果がありません');
+            return;
+        }
+
+        // ログテキストを生成
+        let logText = `お題ゲームメーカー - 抽選ログ\n`;
+        logText += `生成日時: ${new Date().toLocaleString('ja-JP')}\n`;
+        logText += `合計お題数: ${this.currentResults.length}\n`;
+        logText += `=======================================\n\n`;
+
+        this.currentResults.forEach((result, index) => {
+            logText += `【お題 ${index + 1}】\n`;
+            logText += `${result.text}\n`;
+            if (result.memo) {
+                logText += `\nメモ・備考:\n${result.memo}\n`;
+            }
+            logText += `\n---\n\n`;
+        });
+
+        logText += `=======================================\n`;
+        logText += `${this.settings.appTitle} - ${this.settings.streamUrl}\n`;
+        logText += `${this.settings.hashtag}\n`;
+
+        // Blobを作成してダウンロード
+        const blob = new Blob([logText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // ファイル名に日時を含める
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        link.download = `odai_log_${timestamp}.txt`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     // 個別の結果をコピー
