@@ -249,8 +249,8 @@ export const PlayerView = ({
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2>エルそれ！ - プレイヤー</h2>
-          <p className="text-muted mb-0">ラウンド {gameState?.round || 0}</p>
+          <h2 style={{ color: '#0066cc', fontWeight: 'bold' }}>エルそれ！ - プレイヤー</h2>
+          <p className="mb-0" style={{ color: '#ffd700', fontWeight: '600' }}>ラウンド {gameState?.round || 0}</p>
         </div>
         <Button variant="outline-secondary" size="sm" onClick={onLeaveRoom}>
           退出

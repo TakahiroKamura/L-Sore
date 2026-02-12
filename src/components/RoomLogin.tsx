@@ -33,8 +33,8 @@ export const RoomLogin = ({ onJoinRoom }: RoomLoginProps) => {
       <div className="d-flex justify-content-center">
         <Card style={{ maxWidth: '500px', width: '100%' }}>
           <Card.Body className="p-4">
-            <h2 className="text-center mb-4">エルそれ！</h2>
-            <p className="text-center text-muted mb-4">
+            <h2 className="text-center mb-2" style={{ color: '#0066cc', fontWeight: 'bold' }}>エルそれ！</h2>
+            <p className="text-center mb-4" style={{ color: '#ffd700', fontWeight: '600', fontSize: '1.1rem' }}>
               ～エルバニアではそれが正解～
             </p>
 

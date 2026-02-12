@@ -1,0 +1,264 @@
+/* カラースキーム定義 */
+:root {
+  --primary-color: #0066cc;
+  --primary-dark: #004d99;
+  --primary-light: #3385d6;
+  --secondary-color: #ffffff;
+  --accent-color: #ffd700;
+  --accent-dark: #ffcc00;
+  --background-color: #f5f7fa;
+  --text-color: #333333;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+  --shadow-hover: 0 4px 16px rgba(0, 102, 204, 0.25);
+}
+
+/* 全体のベーススタイル */
+body {
+  background: linear-gradient(135deg, var(--background-color) 0%, #e8f0f8 100%);
+  min-height: 100vh;
+  color: var(--text-color);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Bootstrap ボタンのカスタマイズ */
+.btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--secondary-color) !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark) !important;
+  border-color: var(--primary-dark) !important;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color) !important;
+  border: 2px solid var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary-light) !important;
+  color: var(--secondary-color) !important;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-warning {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-dark) !important;
+  color: var(--text-color) !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-warning:hover {
+  background-color: var(--accent-dark) !important;
+  border-color: var(--accent-dark) !important;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* カードのスタイリング */
+.card {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+  background-color: var(--secondary-color);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+  color: var(--secondary-color) !important;
+  border: none !important;
+  border-radius: 12px 12px 0 0 !important;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* リストグループのスタイリング */
+.list-group-item {
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(4px);
+}
+
+.list-group-item.active {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* バッジのスタイリング */
+.badge.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.badge.bg-warning {
+  background-color: var(--accent-color) !important;
+  color: var(--text-color) !important;
+}
+
+.badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+/* フォームコントロール */
+.form-control {
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+/* タイトルとヘッダー */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* アクセントテキスト */
+.text-accent {
+  color: var(--accent-color) !important;
+  font-weight: 600;
+}
+
+/* プライマリテキスト */
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+/* コンテナの調整 */
+.container {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* アラート */
+.alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: var(--shadow);
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  color: var(--primary-dark);
+  border-left: 4px solid var(--primary-color);
+}
+
+.alert-warning {
+  background-color: #fffbea;
+  color: #856404;
+  border-left: 4px solid var(--accent-color);
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+
+  .container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+/* スクロールバーのカスタマイズ（Webkit系ブラウザ） */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}

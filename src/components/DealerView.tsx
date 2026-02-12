@@ -412,8 +412,8 @@ export const DealerView = ({
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="display-4">エルそれ！ - ディーラー</h1>
-          <p className="text-muted">～エルバニアではそれが正解～</p>
+          <h1 className="display-4" style={{ color: '#0066cc', fontWeight: 'bold' }}>エルそれ！ - ディーラー</h1>
+          <p style={{ color: '#ffd700', fontWeight: '600', fontSize: '1.1rem' }}>～エルバニアではそれが正解～</p>
         </div>
         <Button variant="outline-secondary" onClick={onLeaveRoom}>
           退出
@@ -475,7 +475,7 @@ export const DealerView = ({
             )}
             {gameState?.phase === 'answering' && (
               <>
-                <Button variant="info" onClick={handleStartVoting}>
+                <Button variant="primary" onClick={handleStartVoting}>
                   投票開始 ({answers.length}件の回答)
                 </Button>
               </>

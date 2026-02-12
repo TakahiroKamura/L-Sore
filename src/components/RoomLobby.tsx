@@ -118,7 +118,7 @@ export const RoomLobby = ({
         <Card style={{ maxWidth: '600px', width: '100%' }}>
           <Card.Body className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
-              <h2 className="mb-0">ルーム: {roomName || roomId}</h2>
+              <h2 className="mb-0" style={{ color: '#0066cc', fontWeight: 'bold' }}>ルーム: {roomName || roomId}</h2>
               <Button variant="outline-secondary" onClick={onLeaveRoom}>
                 退出
               </Button>
