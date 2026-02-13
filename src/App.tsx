@@ -4,6 +4,7 @@ import { DealerView } from './components/DealerView';
 import { PlayerView } from './components/PlayerView';
 import { RoomLobby } from './components/RoomLobby';
 import { RoomLogin } from './components/RoomLogin';
+import { MAX_PLAYERS } from './constants/game';
 import { supabase } from './lib/supabase';
 
 type AppState = 'login' | 'lobby' | 'dealer' | 'player';
@@ -56,6 +57,28 @@ function App() {
     }
 
     setRoomId(room.id);
+
+    // 現在のアクティブプレイヤー数を確認
+    const { data: activePlayers, error: playersError } = await supabase
+      .from('players')
+      .select('id, user_id')
+      .eq('room_id', room.id)
+      .eq('is_active', true);
+
+    if (playersError) {
+      console.error('プレイヤー数確認エラー:', playersError);
+      alert('入室に失敗しました');
+      return;
+    }
+
+    // 自分が既に参加しているか確認
+    const iAmAlreadyIn = activePlayers?.some((p) => p.user_id === name);
+
+    // 自分がまだ参加していなくて、かつ満員の場合は入室拒否
+    if (!iAmAlreadyIn && activePlayers && activePlayers.length >= MAX_PLAYERS) {
+      alert(`このルームは満員です（最大${MAX_PLAYERS}人）`);
+      return;
+    }
 
     // 既存の同一名前のレコードを無効化（ゴースト対策）
     await supabase
