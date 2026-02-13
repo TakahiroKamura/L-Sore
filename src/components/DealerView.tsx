@@ -102,7 +102,7 @@ export const DealerView = ({
     // 既存のゲーム状態を取得
     // maybeSingle()を使用：レコードが0件でもエラーにならない
     let { data: existingState, error: fetchError } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .select('*')
       .eq('room_id', roomId)
       .maybeSingle();
@@ -116,7 +116,7 @@ export const DealerView = ({
       // 新規作成（初期状態はlobby）
       console.log('[Dealer] game_stateを新規作成します');
       const { data: newState, error: insertError } = await supabase
-        .from('game_state')
+        .from('lsore_game_state')
         .insert({
           room_id: roomId,
           phase: 'lobby',
@@ -148,7 +148,7 @@ export const DealerView = ({
     }
 
     const { data, error } = await supabase
-      .from('answers')
+      .from('lsore_answers')
       .select('*')
       .eq('game_state_id', gsId)
       .order('created_at', { ascending: true });
@@ -164,7 +164,7 @@ export const DealerView = ({
   const loadPlayers = async () => {
     console.log('[Dealer] loadPlayers呼び出し: roomId=', roomId);
     const { data, error } = await supabase
-      .from('players')
+      .from('lsore_players')
       .select('*')
       .eq('room_id', roomId)
       .eq('is_active', true)
@@ -191,7 +191,7 @@ export const DealerView = ({
         {
           event: '*',
           schema: 'public',
-          table: 'players',
+          table: 'lsore_players',
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
@@ -221,14 +221,14 @@ export const DealerView = ({
         {
           event: '*',
           schema: 'public',
-          table: 'answers',
+          table: 'lsore_answers',
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
           console.log('[Dealer] 回答変更検知:', payload);
           if (isMountedRef.current && gameState?.id) {
             const { data } = await supabase
-              .from('answers')
+              .from('lsore_answers')
               .select('*')
               .eq('game_state_id', gameState.id);
 
@@ -249,7 +249,7 @@ export const DealerView = ({
     if (!gameState) return;
 
     const { error } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .update({ phase: 'waiting' } as any)
       .eq('id', gameState.id);
 
@@ -270,7 +270,7 @@ export const DealerView = ({
       console.log('[Dealer] 抽選したお題:', topicText);
 
       const { error } = await supabase
-        .from('game_state')
+        .from('lsore_game_state')
         .update({
           current_topic: topicText,
           phase: 'topic_drawn',
@@ -303,7 +303,7 @@ export const DealerView = ({
       console.log('[Dealer] 再抽選したお題:', topicText);
 
       const { error } = await supabase
-        .from('game_state')
+        .from('lsore_game_state')
         .update({
           current_topic: topicText,
         } as any)
@@ -341,7 +341,7 @@ export const DealerView = ({
     }
 
     const { error } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .update({
         phase: 'answering',
         round: gameState.round + 1,
@@ -361,7 +361,7 @@ export const DealerView = ({
     if (!gameState) return;
 
     const { error } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .update({ phase: 'voting' } as any)
       .eq('id', gameState.id);
 
@@ -374,7 +374,7 @@ export const DealerView = ({
     if (!gameState) return;
 
     const { error } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .update({ phase: 'results' } as any)
       .eq('id', gameState.id);
 
@@ -387,11 +387,11 @@ export const DealerView = ({
     if (!gameState) return;
 
     // 回答と投票をクリア
-    await supabase.from('answers').delete().eq('game_state_id', gameState.id);
-    await supabase.from('votes').delete().eq('room_id', roomId);
+    await supabase.from('lsore_answers').delete().eq('game_state_id', gameState.id);
+    await supabase.from('lsore_votes').delete().eq('room_id', roomId);
 
     const { error } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .update({
         phase: 'lobby',
         current_topic: null,

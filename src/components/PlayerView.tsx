@@ -93,7 +93,7 @@ export const PlayerView = ({
   const loadGameState = async () => {
     // maybeSingle()を使用：レコードが0件でもエラーにならない
     const { data } = await supabase
-      .from('game_state')
+      .from('lsore_game_state')
       .select('*')
       .eq('room_id', roomId)
       .maybeSingle();
@@ -107,7 +107,7 @@ export const PlayerView = ({
     if (!gameState?.id) return;
 
     const { data } = await supabase
-      .from('answers')
+      .from('lsore_answers')
       .select('*')
       .eq('game_state_id', gameState.id)
       .order('created_at', { ascending: true });
@@ -130,7 +130,7 @@ export const PlayerView = ({
         {
           event: '*',
           schema: 'public',
-          table: 'game_state',
+          table: 'lsore_game_state',
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
@@ -160,7 +160,7 @@ export const PlayerView = ({
         {
           event: '*',
           schema: 'public',
-          table: 'answers',
+          table: 'lsore_answers',
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
@@ -193,7 +193,7 @@ export const PlayerView = ({
     console.log('[Player] 回答送信開始:', myAnswer.trim());
 
     try {
-      const { data, error } = await supabase.from('answers').insert({
+      const { data, error } = await supabase.from('lsore_answers').insert({
         room_id: roomId,
         game_state_id: gameState.id,
         user_id: userId,
@@ -220,7 +220,7 @@ export const PlayerView = ({
   const handleVote = async (answerId: string) => {
     if (hasVoted) return;
 
-    const { error } = await supabase.from('votes').insert({
+    const { error } = await supabase.from('lsore_votes').insert({
       room_id: roomId,
       answer_id: answerId,
       user_id: userId,
@@ -232,7 +232,7 @@ export const PlayerView = ({
       const answer = answers.find((a) => a.id === answerId);
       if (answer) {
         await supabase
-          .from('answers')
+          .from('lsore_answers')
           .update({ votes: answer.votes + 1 } as any)
           .eq('id', answerId);
       }

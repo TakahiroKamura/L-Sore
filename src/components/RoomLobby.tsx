@@ -53,7 +53,7 @@ export const RoomLobby = ({
 
   const loadRoomInfo = async () => {
     const { data } = await supabase
-      .from('rooms')
+      .from('lsore_rooms')
       .select('name')
       .eq('id', roomId)
       .single();
@@ -66,7 +66,7 @@ export const RoomLobby = ({
   const loadPlayers = async () => {
     console.log('[Lobby] loadPlayers呼び出し: roomId=', roomId);
     const { data, error } = await supabase
-      .from('players')
+      .from('lsore_players')
       .select('*')
       .eq('room_id', roomId)
       .eq('is_active', true)
@@ -93,7 +93,7 @@ export const RoomLobby = ({
         {
           event: '*',
           schema: 'public',
-          table: 'players',
+          table: 'lsore_players',
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {

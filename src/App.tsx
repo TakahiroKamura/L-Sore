@@ -20,7 +20,7 @@ function App() {
       if (roomId && (appState === 'dealer' || appState === 'player' || appState === 'lobby')) {
         // 非同期だが、ブラウザはある程度待ってくれる
         await supabase
-          .from('players')
+          .from('lsore_players')
           .update({ is_active: false } as any)
           .eq('room_id', roomId)
           .eq('user_id', userName);
@@ -46,7 +46,7 @@ function App() {
 
     // ルームの存在確認
     const { data: room, error } = await supabase
-      .from('rooms')
+      .from('lsore_rooms')
       .select('id, password')
       .eq('password', roomPassword)
       .single();
@@ -60,7 +60,7 @@ function App() {
 
     // 現在のアクティブプレイヤー数を確認
     const { data: activePlayers, error: playersError } = await supabase
-      .from('players')
+      .from('lsore_players')
       .select('id, user_id')
       .eq('room_id', room.id)
       .eq('is_active', true);
@@ -82,13 +82,13 @@ function App() {
 
     // 既存の同一名前のレコードを無効化（ゴースト対策）
     await supabase
-      .from('players')
+      .from('lsore_players')
       .update({ is_active: false } as any)
       .eq('room_id', room.id)
       .eq('user_id', name);
 
     // プレイヤーとして登録（user_idは名前と同じ）
-    const { error: playerError } = await supabase.from('players').insert({
+    const { error: playerError } = await supabase.from('lsore_players').insert({
       room_id: room.id,
       user_id: name,
       user_name: name,
@@ -111,7 +111,7 @@ function App() {
   const handleEnterAsDealer = async () => {
     // ディーラーに更新（user_idはuserNameと同じ）
     await supabase
-      .from('players')
+      .from('lsore_players')
       .update({ role: 'dealer' })
       .eq('room_id', roomId)
       .eq('user_id', userName);
@@ -122,7 +122,7 @@ function App() {
   const handleEnterAsPlayer = async () => {
     // プレイヤーに更新（user_idはuserNameと同じ）
     await supabase
-      .from('players')
+      .from('lsore_players')
       .update({ role: 'player' })
       .eq('room_id', roomId)
       .eq('user_id', userName);
@@ -133,7 +133,7 @@ function App() {
   const handleLeaveRoom = async () => {
     // プレイヤーを非アクティブ化（user_idはuserNameと同じ）
     await supabase
-      .from('players')
+      .from('lsore_players')
       .update({ is_active: false })
       .eq('room_id', roomId)
       .eq('user_id', userName);

@@ -9,7 +9,7 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      rooms: {
+      lsore_rooms: {
         Row: {
           id: string;
           name: string;
@@ -32,7 +32,7 @@ export interface Database {
           updated_at?: string;
         };
       };
-      players: {
+      lsore_players: {
         Row: {
           id: string;
           room_id: string;
@@ -64,7 +64,7 @@ export interface Database {
           updated_at?: string;
         };
       };
-      game_state: {
+      lsore_game_state: {
         Row: {
           id: string;
           room_id: string;
@@ -93,7 +93,7 @@ export interface Database {
           updated_at?: string;
         };
       };
-      answers: {
+      lsore_answers: {
         Row: {
           id: string;
           room_id: string;
@@ -128,7 +128,7 @@ export interface Database {
           updated_at?: string;
         };
       };
-      votes: {
+      lsore_votes: {
         Row: {
           id: string;
           room_id: string;
