@@ -90,6 +90,35 @@ export const PlayerView = ({
     }
   }, [gameState?.id]);
 
+  // フェーズが変わったときの処理
+  useEffect(() => {
+    if (gameState?.phase === 'lobby' || gameState?.phase === 'waiting') {
+      // ロビーまたは待機フェーズになったら回答をクリア
+      console.log('[Player] フェーズ変更: 回答クリア');
+      setAnswers([]);
+      setHasVoted(false);
+      setMyAnswer('');
+    } else if (gameState?.phase === 'answering') {
+      // 回答募集フェーズになったら回答を再読み込み
+      console.log('[Player] フェーズ変更: 回答再読み込み（answering）');
+      loadAnswers();
+      setHasVoted(false);
+    } else if (gameState?.phase === 'voting') {
+      // 投票フェーズになったら回答を再読み込み
+      console.log('[Player] フェーズ変更: 回答再読み込み（voting）');
+      loadAnswers();
+    } else if (gameState?.phase === 'results') {
+      // 結果表示フェーズでも回答を再読み込み
+      console.log('[Player] フェーズ変更: 回答再読み込み（results）');
+      loadAnswers();
+    }
+  }, [gameState?.phase]);
+
+  // 回答リストが変わったときのログ
+  useEffect(() => {
+    console.log('[Player] 回答リスト更新:', answers.length, '件', answers);
+  }, [answers]);
+
   const loadGameState = async () => {
     // maybeSingle()を使用：レコードが0件でもエラーにならない
     const { data } = await supabase
@@ -104,15 +133,23 @@ export const PlayerView = ({
   };
 
   const loadAnswers = async () => {
-    if (!gameState?.id) return;
+    if (!gameState?.id) {
+      console.log('[Player] loadAnswers: gameState.idが未設定のためスキップ');
+      return;
+    }
 
-    const { data } = await supabase
+    console.log('[Player] loadAnswers: game_state_id=', gameState.id);
+
+    const { data, error } = await supabase
       .from('lsore_answers')
       .select('*')
       .eq('game_state_id', gameState.id)
       .order('created_at', { ascending: true });
 
-    if (data) {
+    if (error) {
+      console.error('[Player] 回答読み込みエラー:', error);
+    } else if (data) {
+      console.log('[Player] 回答読み込み成功:', data.length, '件', data);
       setAnswers(data);
     }
   };

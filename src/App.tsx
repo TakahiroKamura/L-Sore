@@ -44,6 +44,8 @@ function App() {
     // ユーザー名を設定（これがuserIdにもなる）
     setUserNameState(name);
 
+    console.log('[App] 入室試行:', { roomPassword, name, role });
+
     // ルームの存在確認
     const { data: room, error } = await supabase
       .from('lsore_rooms')
@@ -51,8 +53,18 @@ function App() {
       .eq('password', roomPassword)
       .single();
 
+    console.log('[App] ルーム検索結果:', { room, error });
+
     if (error || !room) {
-      alert('合言葉が正しくありません');
+      console.error('[App] ルーム検索失敗 - エラー詳細:', {
+        error,
+        errorMessage: error?.message,
+        errorDetails: error?.details,
+        errorHint: error?.hint,
+        errorCode: error?.code,
+        roomData: room,
+      });
+      alert(`合言葉が正しくありません。\n\nエラー: ${error?.message || '不明なエラー'}\n詳細はコンソールを確認してください。`);
       return;
     }
 

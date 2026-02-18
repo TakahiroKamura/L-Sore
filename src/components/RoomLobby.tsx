@@ -126,13 +126,12 @@ export const RoomLobby = ({
                 退出
               </Button>
             </div>
- className="d-flex justify-content-between align-items-center">
-            <strong>参加者一覧</strong>
-            <Badge bg={isRoomFull ? 'danger' : 'success'}>
-              {players.length}/{MAX_PLAYERS}
-            </Badge
-              <Card.Header>
+
+            <Card.Header className="d-flex justify-content-between align-items-center">
               <strong>参加者一覧</strong>
+              <Badge bg={isRoomFull ? 'danger' : 'success'}>
+                {players.length}/{MAX_PLAYERS}
+              </Badge>
             </Card.Header>
             <ListGroup variant="flush">
               {players.length === 0 ? (
@@ -159,44 +158,43 @@ export const RoomLobby = ({
                       {player.role === 'dealer' ? 'ディーラー' : 'プレイヤー'}
                     </Badge>
                   </ListGroup.Item>
-            { isRoomFull && !iAmInRoom && (
-                    <div className="alert alert-warning mb-3" role="alert">
-                      <strong>ルームが満員です</strong><br />
-                      現在 {MAX_PLAYERS} 人が参加しています。
-                    </div>
-                  )}
+                ))
+              )}
+            </ListGroup>
 
-              <div className="d-grid gap-2">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={onEnterAsDealer}
-                  disabled={(hasDealer && !iAmDealer) || (isRoomFull && !iAmInRoom)}
-                >
-                  {iAmDealer
-                    ? 'ディーラーとして開始'
-                    : hasDealer
-                      ? 'ディーラーは既にいます'
-                      : 'ディーラーとして開始'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={onEnterAsPlayer}
-                  disabled={iAmDealer || (isRoomFull && !iAmInRoom)
-                    < Button
+            {isRoomFull && !iAmInRoom && (
+              <div className="alert alert-warning mt-3 mb-0" role="alert">
+                <strong>ルームが満員です</strong><br />
+                現在 {MAX_PLAYERS} 人が参加しています。
+              </div>
+            )}
+
+            <div className="d-grid gap-2 mt-3">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={onEnterAsDealer}
+                disabled={(hasDealer && !iAmDealer) || (isRoomFull && !iAmInRoom)}
+              >
+                {iAmDealer
+                  ? 'ディーラーとして開始'
+                  : hasDealer
+                    ? 'ディーラーは既にいます'
+                    : 'ディーラーとして開始'}
+              </Button>
+              <Button
                 variant="secondary"
-                  size="lg"
-                  onClick={onEnterAsPlayer}
-                  disabled={iAmDealer}
-                >
-                  プレイヤーとして開始
-                </Button>
-              </div>
+                size="lg"
+                onClick={onEnterAsPlayer}
+                disabled={iAmDealer || (isRoomFull && !iAmInRoom)}
+              >
+                プレイヤーとして開始
+              </Button>
+            </div>
 
-              <div className="mt-3 text-center text-muted small">
-                ディーラーはお題の抽選とゲーム進行を担当します
-              </div>
+            <div className="mt-3 text-center text-muted small">
+              ディーラーはお題の抽選とゲーム進行を担当します
+            </div>
           </Card.Body>
         </Card>
       </div>

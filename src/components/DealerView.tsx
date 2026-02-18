@@ -340,6 +340,17 @@ export const DealerView = ({
       return;
     }
 
+    console.log('[Dealer] 回答募集開始: 古い回答をクリア');
+
+    // 念のため、古い回答をクリア
+    await supabase
+      .from('lsore_answers')
+      .delete()
+      .eq('game_state_id', gameState.id);
+
+    // ローカルの回答もクリア
+    setAnswers([]);
+
     const { error } = await supabase
       .from('lsore_game_state')
       .update({
@@ -349,11 +360,14 @@ export const DealerView = ({
       .eq('id', gameState.id);
 
     if (!error) {
+      console.log('[Dealer] 回答募集フェーズに移行しました');
       setGameState({
         ...gameState,
         phase: 'answering',
         round: gameState.round + 1,
       });
+    } else {
+      console.error('[Dealer] フェーズ更新エラー:', error);
     }
   };
 
@@ -386,9 +400,30 @@ export const DealerView = ({
   const handleNextRound = async () => {
     if (!gameState) return;
 
+    console.log('[Dealer] 次のラウンド開始: 回答と投票をクリア');
+
     // 回答と投票をクリア
-    await supabase.from('lsore_answers').delete().eq('game_state_id', gameState.id);
-    await supabase.from('lsore_votes').delete().eq('room_id', roomId);
+    const { error: answersDeleteError } = await supabase
+      .from('lsore_answers')
+      .delete()
+      .eq('game_state_id', gameState.id);
+
+    if (answersDeleteError) {
+      console.error('[Dealer] 回答削除エラー:', answersDeleteError);
+    } else {
+      console.log('[Dealer] 回答削除成功');
+    }
+
+    const { error: votesDeleteError } = await supabase
+      .from('lsore_votes')
+      .delete()
+      .eq('room_id', roomId);
+
+    if (votesDeleteError) {
+      console.error('[Dealer] 投票削除エラー:', votesDeleteError);
+    } else {
+      console.log('[Dealer] 投票削除成功');
+    }
 
     const { error } = await supabase
       .from('lsore_game_state')
@@ -399,12 +434,15 @@ export const DealerView = ({
       .eq('id', gameState.id);
 
     if (!error) {
+      console.log('[Dealer] ゲーム状態をロビーに戻しました');
       setGameState({
         ...gameState,
         phase: 'lobby',
         current_topic: null,
       });
       setAnswers([]);
+    } else {
+      console.error('[Dealer] ゲーム状態更新エラー:', error);
     }
   };
 
