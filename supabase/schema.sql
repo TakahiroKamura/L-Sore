@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.lsore_game_state (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   room_id UUID NOT NULL REFERENCES public.lsore_rooms(id) ON DELETE CASCADE,
   current_topic TEXT,
-  phase TEXT NOT NULL DEFAULT 'lobby' CHECK (phase IN ('lobby', 'waiting', 'topic_drawn', 'answering', 'voting', 'results')),
+  phase TEXT NOT NULL DEFAULT 'lobby' CHECK (phase IN ('lobby', 'waiting', 'topic_drawn', 'answering', 'revealing', 'voting', 'results')),
   round INTEGER DEFAULT 0 NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,

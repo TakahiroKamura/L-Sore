@@ -69,7 +69,7 @@ export interface Database {
           id: string;
           room_id: string;
           current_topic: string | null;
-          phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'voting' | 'results';
+          phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'revealing' | 'voting' | 'results';
           round: number;
           created_at: string;
           updated_at: string;
@@ -78,7 +78,7 @@ export interface Database {
           id?: string;
           room_id: string;
           current_topic?: string | null;
-          phase?: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'voting' | 'results';
+          phase?: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'revealing' | 'voting' | 'results';
           round?: number;
           created_at?: string;
           updated_at?: string;
@@ -87,7 +87,7 @@ export interface Database {
           id?: string;
           room_id?: string;
           current_topic?: string | null;
-          phase?: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'voting' | 'results';
+          phase?: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'revealing' | 'voting' | 'results';
           round?: number;
           created_at?: string;
           updated_at?: string;

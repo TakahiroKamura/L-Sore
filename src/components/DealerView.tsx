@@ -8,7 +8,7 @@ type GameState = {
   id: string;
   room_id: string;
   current_topic: string | null;
-  phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'voting' | 'results';
+  phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'revealing' | 'voting' | 'results';
   round: number;
   created_at: string;
   updated_at: string;
@@ -459,22 +459,29 @@ export const DealerView = ({
     }
   };
 
+  const handleStartRevealing = async () => {
+    if (!gameState) return;
+
+    console.log('[Dealer] 開示フェーズへ移行');
+
+    // フェーズをrevealingに変更
+    const { error } = await supabase
+      .from('lsore_game_state')
+      .update({ phase: 'revealing' } as any)
+      .eq('id', gameState.id);
+
+    if (!error) {
+      console.log('[Dealer] 開示フェーズに移行しました');
+      setGameState({ ...gameState, phase: 'revealing' });
+    }
+  };
+
   const handleStartVoting = async () => {
     if (!gameState) return;
 
-    console.log('[Dealer] 投票開始: 全ての回答を公開');
+    console.log('[Dealer] 投票開始');
 
-    // 投票開始時に全ての回答を公開
-    const { error: revealError } = await supabase
-      .from('lsore_answers')
-      .update({ is_revealed: true } as any)
-      .eq('game_state_id', gameState.id);
-
-    if (revealError) {
-      console.error('[Dealer] 回答公開エラー:', revealError);
-    }
-
-    // フェーズを投票に変更
+    // フェーズを投票に変更（回答は既に公開済み）
     const { error } = await supabase
       .from('lsore_game_state')
       .update({ phase: 'voting' } as any)
@@ -483,8 +490,6 @@ export const DealerView = ({
     if (!error) {
       console.log('[Dealer] 投票フェーズに移行しました');
       setGameState({ ...gameState, phase: 'voting' });
-      // 回答を再読み込みして公開状態を反映
-      loadAnswers();
     }
   };
 
@@ -573,6 +578,7 @@ export const DealerView = ({
             {gameState?.phase === 'waiting' && '待機中'}
             {gameState?.phase === 'topic_drawn' && 'お題出題'}
             {gameState?.phase === 'answering' && '回答受付中'}
+            {gameState?.phase === 'revealing' && '回答開示中'}
             {gameState?.phase === 'voting' && '投票中'}
             {gameState?.phase === 'results' && '結果表示'}
           </div>
@@ -617,10 +623,19 @@ export const DealerView = ({
             )}
             {gameState?.phase === 'answering' && (
               <>
-                <Button variant="primary" onClick={handleStartVoting}>
-                  投票開始 ({answers.length}件の回答)
+                <Button variant="primary" onClick={handleStartRevealing}>
+                  回答締め切り ({answers.length}件の回答)
                 </Button>
               </>
+            )}
+            {gameState?.phase === 'revealing' && (
+              <Button
+                variant="success"
+                onClick={handleStartVoting}
+                disabled={answers.some(a => !a.is_revealed)}
+              >
+                投票開始 {answers.some(a => !a.is_revealed) && `(未公開: ${answers.filter(a => !a.is_revealed).length}件)`}
+              </Button>
             )}
             {gameState?.phase === 'voting' && (
               <Button variant="warning" onClick={handleShowResults}>
@@ -637,6 +652,7 @@ export const DealerView = ({
       </Card>
 
       {(gameState?.phase === 'answering' ||
+        gameState?.phase === 'revealing' ||
         gameState?.phase === 'voting' ||
         gameState?.phase === 'results') && (
           <Card className="mb-4">
@@ -648,12 +664,20 @@ export const DealerView = ({
                 <p className="text-center text-muted mb-0">まだ回答がありません</p>
               ) : (
                 <>
-                  {gameState.phase === 'answering' || gameState.phase === 'voting' ? (
+                  {gameState.phase === 'answering' ? (
                     <p className="text-center mb-0">
                       <strong>{answers.length}件</strong>の回答が届いています
                       <br />
                       <span className="text-muted small">
-                        回答内容は結果発表フェーズで確認できます
+                        回答締め切り後に内容を確認できます
+                      </span>
+                    </p>
+                  ) : gameState.phase === 'voting' ? (
+                    <p className="text-center mb-0">
+                      <strong>{answers.filter(a => a.is_revealed).length}件</strong>の回答を公開中
+                      <br />
+                      <span className="text-muted small">
+                        プレイヤーが投票しています
                       </span>
                     </p>
                   ) : (
@@ -673,10 +697,10 @@ export const DealerView = ({
                               )}
                             </div>
                             <div className="d-flex gap-2 align-items-center">
-                              {answer.is_revealed && (
+                              {gameState.phase === 'results' && answer.is_revealed && (
                                 <span className="text-primary">{answer.votes} 票</span>
                               )}
-                              {!answer.is_revealed && (
+                              {gameState.phase === 'revealing' && !answer.is_revealed && (
                                 <Button
                                   size="sm"
                                   variant="primary"
@@ -724,7 +748,7 @@ export const DealerView = ({
       )}
 
       {/* 回答中もお題を表示 */}
-      {(gameState?.phase === 'answering' || gameState?.phase === 'voting' || gameState?.phase === 'results') && gameState?.current_topic && (
+      {(gameState?.phase === 'answering' || gameState?.phase === 'revealing' || gameState?.phase === 'voting' || gameState?.phase === 'results') && gameState?.current_topic && (
         <Card className="mb-4">
           <Card.Header>
             <strong>お題</strong>

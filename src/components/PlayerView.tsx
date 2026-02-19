@@ -7,7 +7,7 @@ type GameState = {
   id: string;
   room_id: string;
   current_topic: string | null;
-  phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'voting' | 'results';
+  phase: 'lobby' | 'waiting' | 'topic_drawn' | 'answering' | 'revealing' | 'voting' | 'results';
   round: number;
   created_at: string;
   updated_at: string;
@@ -431,6 +431,20 @@ export const PlayerView = ({
               回答済み
             </Badge>
             <p className="mb-0">他のプレイヤーの回答を待っています...</p>
+          </Card.Body>
+        </Card>
+      )}
+
+      {/* 開示フェーズ（ディーラーが回答を順次公開中） */}
+      {gameState?.phase === 'revealing' && (
+        <Card className="mb-4">
+          <Card.Body className="text-center py-5">
+            <h4>ディーラーが回答を公開しています</h4>
+            <p className="text-muted">
+              {revealedAnswers.length > 0
+                ? `${revealedAnswers.length}件の回答が公開されました`
+                : 'ディーラーが回答を公開するまでお待ちください'}
+            </p>
           </Card.Body>
         </Card>
       )}
