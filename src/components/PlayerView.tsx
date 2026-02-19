@@ -21,6 +21,7 @@ type Answer = {
   user_name: string;
   answer_text: string;
   votes: number;
+  is_revealed: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -257,6 +258,7 @@ export const PlayerView = ({
   const handleVote = async (answerId: string) => {
     if (hasVoted) return;
 
+    // 投票を記録
     const { error } = await supabase.from('lsore_votes').insert({
       room_id: roomId,
       answer_id: answerId,
@@ -264,23 +266,31 @@ export const PlayerView = ({
     } as any);
 
     if (!error) {
-      setHasVoted(true);
-      // 投票数を更新
-      const answer = answers.find((a) => a.id === answerId);
-      if (answer) {
-        await supabase
-          .from('lsore_answers')
-          .update({ votes: answer.votes + 1 } as any)
-          .eq('id', answerId);
+      // 投票数をアトミックにインクリメント（競合状態を防ぐ）
+      const { error: incrementError } = await supabase.rpc('increment_answer_votes', {
+        answer_id_param: answerId,
+      });
+
+      if (incrementError) {
+        console.error('[Player] 投票数更新エラー:', incrementError);
+      } else {
+        console.log('[Player] 投票成功:', answerId);
       }
+
+      setHasVoted(true);
+      // 回答を再読み込みして最新の投票数を表示
+      loadAnswers();
+    } else {
+      console.error('[Player] 投票記録エラー:', error);
     }
   };
 
   const myAnswerData = answers.find((a) => a.user_id === userId);
+  const revealedAnswers = answers.filter((a) => a.is_revealed);
   const canAnswer =
     gameState?.phase === 'answering' && !myAnswerData;
   const canVote =
-    gameState?.phase === 'voting' && !hasVoted && answers.length > 0;
+    gameState?.phase === 'voting' && !hasVoted && revealedAnswers.length > 0;
 
   return (
     <Container className="py-4">
@@ -400,34 +410,42 @@ export const PlayerView = ({
             </strong>
           </Card.Header>
           <ListGroup variant="flush">
-            {answers.map((answer) => (
-              <ListGroup.Item
-                key={answer.id}
-                className="d-flex justify-content-between align-items-center"
-              >
-                <div>
-                  <div>
-                    <strong>{answer.user_name}</strong>
-                  </div>
-                  <div>{answer.answer_text}</div>
-                </div>
-                <div className="d-flex gap-2 align-items-center">
-                  {gameState.phase === 'results' && (
-                    <Badge bg="primary">{answer.votes} 票</Badge>
-                  )}
-                  {gameState.phase === 'voting' && canVote && (
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      onClick={() => handleVote(answer.id)}
-                      disabled={hasVoted || answer.user_id === userId}
-                    >
-                      投票
-                    </Button>
-                  )}
-                </div>
+            {revealedAnswers.length === 0 ? (
+              <ListGroup.Item className="text-center text-muted">
+                {gameState.phase === 'voting'
+                  ? 'ディーラーが回答を公開するまでお待ちください'
+                  : 'まだ公開された回答がありません'}
               </ListGroup.Item>
-            ))}
+            ) : (
+              revealedAnswers.map((answer) => (
+                <ListGroup.Item
+                  key={answer.id}
+                  className="d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <div>
+                      <strong>{answer.user_name}</strong>
+                    </div>
+                    <div>{answer.answer_text}</div>
+                  </div>
+                  <div className="d-flex gap-2 align-items-center">
+                    {gameState.phase === 'results' && (
+                      <Badge bg="primary">{answer.votes} 票</Badge>
+                    )}
+                    {gameState.phase === 'voting' && canVote && (
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        onClick={() => handleVote(answer.id)}
+                        disabled={hasVoted || answer.user_id === userId}
+                      >
+                        投票
+                      </Button>
+                    )}
+                  </div>
+                </ListGroup.Item>
+              ))
+            )}
           </ListGroup>
         </Card>
       )}

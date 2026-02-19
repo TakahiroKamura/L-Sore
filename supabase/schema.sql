@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.lsore_answers (
   user_name TEXT NOT NULL,
   answer_text TEXT NOT NULL,
   votes INTEGER DEFAULT 0 NOT NULL,
+  is_revealed BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -221,3 +222,21 @@ GRANT ALL ON public.lsore_votes TO anon, authenticated;
 
 -- シーケンスへのアクセス権限（UUID生成のため）
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- ==============================================
+-- 投票数をアトミックにインクリメントする関数（競合状態を防ぐ）
+-- ==============================================
+CREATE OR REPLACE FUNCTION increment_answer_votes(answer_id_param UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE lsore_answers
+  SET votes = votes + 1
+  WHERE id = answer_id_param;
+END;
+$$;
+
+-- RPC関数へのアクセス権限
+GRANT EXECUTE ON FUNCTION increment_answer_votes(UUID) TO anon, authenticated;

@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
-import { Button, Card, Container, ListGroup } from 'react-bootstrap';
+import { Button, Card, Container, Form, ListGroup } from 'react-bootstrap';
 import { useGameLogic } from '../hooks/useGameLogic';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +22,7 @@ type Answer = {
   user_name: string;
   answer_text: string;
   votes: number;
+  is_revealed: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -46,6 +47,8 @@ interface DealerViewProps {
 
 export const DealerView = ({
   roomId,
+  userId,
+  userName,
   onLeaveRoom,
 }: DealerViewProps) => {
   const {
@@ -57,6 +60,8 @@ export const DealerView = ({
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [myAnswer, setMyAnswer] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const playersChannelRef = useRef<RealtimeChannel | null>(null);
   const answersChannelRef = useRef<RealtimeChannel | null>(null);
   const isMountedRef = useRef(true);
@@ -334,7 +339,7 @@ export const DealerView = ({
     });
   };
 
-  const handleStartAnswering = async () => {
+  const handleStartAnswer = async () => {
     if (!gameState?.current_topic) {
       alert('お題が設定されていません');
       return;
@@ -368,6 +373,61 @@ export const DealerView = ({
       });
     } else {
       console.error('[Dealer] フェーズ更新エラー:', error);
+    }
+  };
+
+  const handleSubmitAnswer = async () => {
+    if (!gameState?.id || !myAnswer.trim()) {
+      console.log('[Dealer] 回答送信スキップ: gameState=', gameState?.id, 'myAnswer=', myAnswer);
+      return;
+    }
+
+    // 二重送信防止
+    if (isSubmitting) {
+      console.log('[Dealer] 送信中のためスキップ');
+      return;
+    }
+
+    setIsSubmitting(true);
+    console.log('[Dealer] 回答送信開始:', myAnswer.trim());
+
+    try {
+      const { data, error } = await supabase.from('lsore_answers').insert({
+        room_id: roomId,
+        game_state_id: gameState.id,
+        user_id: userId,
+        user_name: userName,
+        answer_text: myAnswer.trim(),
+        is_revealed: false,
+      } as any).select();
+
+      if (error) {
+        console.error('[Dealer] 回答送信エラー:', error);
+        alert('回答の送信に失敗しました: ' + error.message);
+      } else {
+        console.log('[Dealer] 回答送信成功:', data);
+        setMyAnswer('');
+        // 回答を再読み込み
+        loadAnswers();
+      }
+    } catch (err) {
+      console.error('[Dealer] 回答送信例外:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRevealAnswer = async (answerId: string) => {
+    const { error } = await supabase
+      .from('lsore_answers')
+      .update({ is_revealed: true } as any)
+      .eq('id', answerId);
+
+    if (!error) {
+      console.log('[Dealer] 回答を公開しました:', answerId);
+      loadAnswers();
+    } else {
+      console.error('[Dealer] 回答公開エラー:', error);
     }
   };
 
@@ -507,7 +567,7 @@ export const DealerView = ({
               </Button>
             )}
             {gameState?.phase === 'topic_drawn' && (
-              <Button variant="success" onClick={handleStartAnswering}>
+              <Button variant="success" onClick={handleStartAnswer}>
                 回答受付開始
               </Button>
             )}
@@ -539,26 +599,57 @@ export const DealerView = ({
             <Card.Header>
               <strong>回答一覧</strong>
             </Card.Header>
-            <ListGroup variant="flush">
+            <Card.Body>
               {answers.length === 0 ? (
-                <ListGroup.Item className="text-center text-muted">
-                  まだ回答がありません
-                </ListGroup.Item>
+                <p className="text-center text-muted mb-0">まだ回答がありません</p>
               ) : (
-                answers.map((answer) => (
-                  <ListGroup.Item key={answer.id}>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <strong>{answer.user_name}:</strong> {answer.answer_text}
-                      </div>
-                      {gameState?.phase === 'results' && (
-                        <span className="text-primary">{answer.votes} 票</span>
-                      )}
-                    </div>
-                  </ListGroup.Item>
-                ))
+                <>
+                  {gameState.phase === 'answering' || gameState.phase === 'voting' ? (
+                    <p className="text-center mb-0">
+                      <strong>{answers.length}件</strong>の回答が届いています
+                      <br />
+                      <span className="text-muted small">
+                        回答内容は結果発表フェーズで確認できます
+                      </span>
+                    </p>
+                  ) : (
+                    <ListGroup variant="flush">
+                      {answers.map((answer) => (
+                        <ListGroup.Item key={answer.id}>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div className="flex-grow-1">
+                              {answer.is_revealed ? (
+                                <>
+                                  <strong>{answer.user_name}:</strong> {answer.answer_text}
+                                </>
+                              ) : (
+                                <span className="text-muted">
+                                  <strong>{answer.user_name}:</strong> [未公開]
+                                </span>
+                              )}
+                            </div>
+                            <div className="d-flex gap-2 align-items-center">
+                              {answer.is_revealed && (
+                                <span className="text-primary">{answer.votes} 票</span>
+                              )}
+                              {!answer.is_revealed && (
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={() => handleRevealAnswer(answer.id)}
+                                >
+                                  公開
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </ListGroup.Item>
+                      ))}
+                    </ListGroup>
+                  )}
+                </>
               )}
-            </ListGroup>
+            </Card.Body>
           </Card>
         )}
 
@@ -598,6 +689,53 @@ export const DealerView = ({
             <p className="text-center mb-0">{gameState.current_topic}</p>
           </Card.Body>
         </Card>
+      )}
+
+      {/* ディーラーの回答入力（回答受付中のみ） */}
+      {gameState?.phase === 'answering' && (
+        (() => {
+          const myAnswerData = answers.find((a) => a.user_id === userId);
+          const canAnswer = !myAnswerData;
+
+          return canAnswer ? (
+            <Card className="mb-4">
+              <Card.Header>
+                <strong>あなたの回答を入力</strong>
+              </Card.Header>
+              <Card.Body>
+                <Form>
+                  <Form.Group className="mb-3">
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      placeholder="あなたの回答を入力してください"
+                      value={myAnswer}
+                      onChange={(e) => setMyAnswer(e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                  </Form.Group>
+                  <Button
+                    variant="primary"
+                    onClick={handleSubmitAnswer}
+                    disabled={!myAnswer.trim() || isSubmitting}
+                  >
+                    {isSubmitting ? '送信中...' : '回答を送信'}
+                  </Button>
+                </Form>
+              </Card.Body>
+            </Card>
+          ) : (
+            <Card className="mb-4 border-success">
+              <Card.Header className="bg-success text-white">
+                <strong>回答済み</strong>
+              </Card.Header>
+              <Card.Body>
+                <p className="mb-1"><strong>あなたの回答:</strong></p>
+                <p className="mb-0">{myAnswerData.answer_text}</p>
+              </Card.Body>
+            </Card>
+          );
+        })()
       )}
 
       {/* オフライン用設定（セッション開始前のみ表示） */}

@@ -102,6 +102,7 @@ export interface Database {
           user_name: string;
           answer_text: string;
           votes: number;
+          is_revealed: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -113,6 +114,7 @@ export interface Database {
           user_name: string;
           answer_text: string;
           votes?: number;
+          is_revealed?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -124,6 +126,7 @@ export interface Database {
           user_name?: string;
           answer_text?: string;
           votes?: number;
+          is_revealed?: boolean;
           created_at?: string;
           updated_at?: string;
         };
