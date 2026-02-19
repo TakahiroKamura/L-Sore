@@ -437,16 +437,36 @@ export const PlayerView = ({
 
       {/* 開示フェーズ（ディーラーが回答を順次公開中） */}
       {gameState?.phase === 'revealing' && (
-        <Card className="mb-4">
-          <Card.Body className="text-center py-5">
-            <h4>ディーラーが回答を公開しています</h4>
-            <p className="text-muted">
-              {revealedAnswers.length > 0
-                ? `${revealedAnswers.length}件の回答が公開されました`
-                : 'ディーラーが回答を公開するまでお待ちください'}
-            </p>
-          </Card.Body>
-        </Card>
+        <>
+          <Card className="mb-4">
+            <Card.Body className="text-center">
+              <h4>ディーラーが回答を公開しています</h4>
+              <p className="text-muted">
+                {revealedAnswers.length > 0
+                  ? `${revealedAnswers.length}件の回答が公開されました`
+                  : 'ディーラーが回答を公開するまでお待ちください'}
+              </p>
+            </Card.Body>
+          </Card>
+          {/* 公開済みの回答を表示 */}
+          {revealedAnswers.length > 0 && (
+            <Card className="mb-4">
+              <Card.Header>
+                <strong>公開済み回答</strong>
+              </Card.Header>
+              <ListGroup variant="flush">
+                {revealedAnswers.map((answer) => (
+                  <ListGroup.Item key={answer.id}>
+                    <div>
+                      <strong>{answer.user_name}</strong>
+                    </div>
+                    <div>{answer.answer_text}</div>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </Card>
+          )}
+        </>
       )}
 
       {(gameState?.phase === 'voting' || gameState?.phase === 'results') && (

@@ -120,6 +120,14 @@ export const DealerView = ({
     };
   }, [roomId]);
 
+  // gameStateが設定されたら回答を読み込む
+  useEffect(() => {
+    if (gameState?.id) {
+      console.log('[Dealer] gameState設定検知: 回答を読み込みます');
+      loadAnswers();
+    }
+  }, [gameState?.id]);
+
   const initGameState = async () => {
     console.log('[Dealer] initGameState呼び出し: roomId=', roomId);
     // 既存のゲーム状態を取得
@@ -249,15 +257,9 @@ export const DealerView = ({
         },
         async (payload) => {
           console.log('[Dealer] 回答変更検知（Realtime）:', payload);
-          if (isMountedRef.current && gameState?.id) {
-            const { data } = await supabase
-              .from('lsore_answers')
-              .select('*')
-              .eq('game_state_id', gameState.id);
-
-            if (data && isMountedRef.current) {
-              setAnswers(data);
-            }
+          if (isMountedRef.current) {
+            // gameStateIdRefを使用して、gameStateが未設定でも取得できるようにする
+            loadAnswers();
           }
         }
       )
