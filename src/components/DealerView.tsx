@@ -67,6 +67,29 @@ export const DealerView = ({
   const isMountedRef = useRef(true);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const gameStateIdRef = useRef<string | null>(null);
+  const realtimeConnectedRef = useRef(false);
+
+  // ポーリングを開始する関数
+  const startPolling = () => {
+    if (pollingIntervalRef.current) return; // 既にポーリング中なら何もしない
+
+    console.log('[Dealer] Realtimeバックアップ: ポーリング開始');
+    pollingIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current && !realtimeConnectedRef.current) {
+        console.log('[Dealer] ポーリングで回答取得');
+        loadAnswers();
+      }
+    }, 5000); // 5秒ごと（バックアップなので長めの間隔）
+  };
+
+  // ポーリングを停止する関数
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      console.log('[Dealer] ポーリング停止（Realtime接続成功）');
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -75,13 +98,8 @@ export const DealerView = ({
     subscribeToPlayers();
     subscribeToAnswers();
 
-    // Realtimeが動作しない場合のバックアップとしてポーリングを追加
-    pollingIntervalRef.current = setInterval(() => {
-      if (isMountedRef.current) {
-        console.log('[Dealer] ポーリングで回答取得');
-        loadAnswers();
-      }
-    }, 3000); // 3秒ごと
+    // 初期状態ではポーリングを開始（Realtime接続確立まで）
+    startPolling();
 
     return () => {
       isMountedRef.current = false;
@@ -230,7 +248,7 @@ export const DealerView = ({
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
-          console.log('[Dealer] 回答変更検知:', payload);
+          console.log('[Dealer] 回答変更検知（Realtime）:', payload);
           if (isMountedRef.current && gameState?.id) {
             const { data } = await supabase
               .from('lsore_answers')
@@ -245,6 +263,16 @@ export const DealerView = ({
       )
       .subscribe((status) => {
         console.log('[Dealer] Answers Realtime接続状態:', status);
+
+        if (status === 'SUBSCRIBED') {
+          // Realtime接続成功 - ポーリングを停止
+          realtimeConnectedRef.current = true;
+          stopPolling();
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          // Realtime接続失敗 - ポーリングを再開
+          realtimeConnectedRef.current = false;
+          startPolling();
+        }
       });
 
     answersChannelRef.current = channel;

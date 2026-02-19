@@ -48,6 +48,29 @@ export const PlayerView = ({
   const answersChannelRef = useRef<RealtimeChannel | null>(null);
   const isMountedRef = useRef(true);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const realtimeConnectedRef = useRef(false);
+
+  // ポーリングを開始する関数
+  const startPolling = () => {
+    if (pollingIntervalRef.current) return; // 既にポーリング中なら何もしない
+
+    console.log('[Player] Realtimeバックアップ: ポーリング開始');
+    pollingIntervalRef.current = setInterval(() => {
+      if (isMountedRef.current && !realtimeConnectedRef.current) {
+        console.log('[Player] ポーリングでgame_state取得');
+        loadGameState();
+      }
+    }, 5000); // 5秒ごと（バックアップなので長めの間隔）
+  };
+
+  // ポーリングを停止する関数
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      console.log('[Player] ポーリング停止（Realtime接続成功）');
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -55,14 +78,8 @@ export const PlayerView = ({
     subscribeToGameState();
     subscribeToAnswers();
 
-    // Realtimeが動作しない場合のバックアップとしてポーリングを追加
-    pollingIntervalRef.current = setInterval(() => {
-      if (isMountedRef.current) {
-        console.log('[Player] ポーリングでgame_state取得');
-        loadGameState();
-        // loadAnswers()はgameStateが更新されたときにuseEffectで自動的に呼ばれる
-      }
-    }, 3000); // 3秒ごと
+    // 初期状態ではポーリングを開始（Realtime接続確立まで）
+    startPolling();
 
     return () => {
       isMountedRef.current = false;
@@ -178,7 +195,7 @@ export const PlayerView = ({
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
-          console.log('[Player] ゲーム状態変更検知:', payload);
+          console.log('[Player] ゲーム状態変更検知（Realtime）:', payload);
           if (isMountedRef.current) {
             loadGameState();
           }
@@ -186,6 +203,16 @@ export const PlayerView = ({
       )
       .subscribe((status) => {
         console.log('[Player] GameState Realtime接続状態:', status);
+
+        if (status === 'SUBSCRIBED') {
+          // Realtime接続成功 - ポーリングを停止
+          realtimeConnectedRef.current = true;
+          stopPolling();
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          // Realtime接続失敗 - ポーリングを再開
+          realtimeConnectedRef.current = false;
+          startPolling();
+        }
       });
 
     gameStateChannelRef.current = channel;
