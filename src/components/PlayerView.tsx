@@ -52,7 +52,6 @@ export const PlayerView = ({
   useEffect(() => {
     isMountedRef.current = true;
     loadGameState();
-    loadAnswers();
     subscribeToGameState();
     subscribeToAnswers();
 
@@ -61,7 +60,7 @@ export const PlayerView = ({
       if (isMountedRef.current) {
         console.log('[Player] ポーリングでgame_state取得');
         loadGameState();
-        loadAnswers();
+        // loadAnswers()はgameStateが更新されたときにuseEffectで自動的に呼ばれる
       }
     }, 3000); // 3秒ごと
 
@@ -86,6 +85,7 @@ export const PlayerView = ({
 
   // gameStateが変わったらanswersも再取得
   useEffect(() => {
+    console.log('[Player] gameState.id変更検知:', gameState?.id);
     if (gameState?.id) {
       loadAnswers();
     }
@@ -121,15 +121,21 @@ export const PlayerView = ({
   }, [answers]);
 
   const loadGameState = async () => {
+    console.log('[Player] loadGameState呼び出し: roomId=', roomId);
     // maybeSingle()を使用：レコードが0件でもエラーにならない
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('lsore_game_state')
       .select('*')
       .eq('room_id', roomId)
       .maybeSingle();
 
-    if (data) {
+    if (error) {
+      console.error('[Player] game_state取得エラー:', error);
+    } else if (data) {
+      console.log('[Player] game_state取得成功:', data);
       setGameState(data);
+    } else {
+      console.log('[Player] game_stateが見つかりません（まだ作成されていない可能性）');
     }
   };
 
