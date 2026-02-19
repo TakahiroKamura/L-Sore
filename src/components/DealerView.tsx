@@ -434,13 +434,29 @@ export const DealerView = ({
   const handleStartVoting = async () => {
     if (!gameState) return;
 
+    console.log('[Dealer] 投票開始: 全ての回答を公開');
+
+    // 投票開始時に全ての回答を公開
+    const { error: revealError } = await supabase
+      .from('lsore_answers')
+      .update({ is_revealed: true } as any)
+      .eq('game_state_id', gameState.id);
+
+    if (revealError) {
+      console.error('[Dealer] 回答公開エラー:', revealError);
+    }
+
+    // フェーズを投票に変更
     const { error } = await supabase
       .from('lsore_game_state')
       .update({ phase: 'voting' } as any)
       .eq('id', gameState.id);
 
     if (!error) {
+      console.log('[Dealer] 投票フェーズに移行しました');
       setGameState({ ...gameState, phase: 'voting' });
+      // 回答を再読み込みして公開状態を反映
+      loadAnswers();
     }
   };
 
