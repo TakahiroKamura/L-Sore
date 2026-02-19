@@ -61,6 +61,7 @@ export const DealerView = ({
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [myAnswer, setMyAnswer] = useState('');
+  const [hasVoted, setHasVoted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const playersChannelRef = useRef<RealtimeChannel | null>(null);
   const answersChannelRef = useRef<RealtimeChannel | null>(null);
@@ -127,6 +128,19 @@ export const DealerView = ({
       loadAnswers();
     }
   }, [gameState?.id]);
+
+  // フェーズが変わったときの処理
+  useEffect(() => {
+    if (gameState?.phase === 'lobby' || gameState?.phase === 'waiting') {
+      // ロビーまたは待機フェーズになったら投票状態をリセット
+      console.log('[Dealer] フェーズ変更: 投票状態リセット');
+      setHasVoted(false);
+    } else if (gameState?.phase === 'answering') {
+      // 回答募集フェーズになったら投票状態をリセット
+      console.log('[Dealer] フェーズ変更: 投票状態リセット（answering）');
+      setHasVoted(false);
+    }
+  }, [gameState?.phase]);
 
   const initGameState = async () => {
     console.log('[Dealer] initGameState呼び出し: roomId=', roomId);
@@ -495,6 +509,36 @@ export const DealerView = ({
     }
   };
 
+  const handleVote = async (answerId: string) => {
+    if (hasVoted) return;
+
+    // 投票を記録
+    const { error } = await supabase.from('lsore_votes').insert({
+      room_id: roomId,
+      answer_id: answerId,
+      user_id: userId,
+    } as any);
+
+    if (!error) {
+      // 投票数をアトミックにインクリメント（競合状態を防ぐ）
+      const { error: incrementError } = await supabase.rpc('increment_answer_votes', {
+        answer_id_param: answerId,
+      });
+
+      if (incrementError) {
+        console.error('[Dealer] 投票数更新エラー:', incrementError);
+      } else {
+        console.log('[Dealer] 投票成功:', answerId);
+      }
+
+      setHasVoted(true);
+      // 回答を再読み込みして最新の投票数を表示
+      loadAnswers();
+    } else {
+      console.error('[Dealer] 投票記録エラー:', error);
+    }
+  };
+
   const handleShowResults = async () => {
     if (!gameState) return;
 
@@ -552,6 +596,7 @@ export const DealerView = ({
         current_topic: null,
       });
       setAnswers([]);
+      setHasVoted(false);
     } else {
       console.error('[Dealer] ゲーム状態更新エラー:', error);
     }
@@ -675,13 +720,33 @@ export const DealerView = ({
                       </span>
                     </p>
                   ) : gameState.phase === 'voting' ? (
-                    <p className="text-center mb-0">
-                      <strong>{answers.filter(a => a.is_revealed).length}件</strong>の回答を公開中
-                      <br />
-                      <span className="text-muted small">
-                        プレイヤーが投票しています
-                      </span>
-                    </p>
+                    <ListGroup variant="flush">
+                      {answers.filter(a => a.is_revealed).length === 0 ? (
+                        <ListGroup.Item className="text-center text-muted">
+                          公開された回答がまだありません
+                        </ListGroup.Item>
+                      ) : (
+                        answers.filter(a => a.is_revealed).map((answer) => (
+                          <ListGroup.Item key={answer.id}>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div className="flex-grow-1">
+                                <strong>{answer.user_name}:</strong> {answer.answer_text}
+                              </div>
+                              <div className="d-flex gap-2 align-items-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline-primary"
+                                  onClick={() => handleVote(answer.id)}
+                                  disabled={hasVoted}
+                                >
+                                  投票
+                                </Button>
+                              </div>
+                            </div>
+                          </ListGroup.Item>
+                        ))
+                      )}
+                    </ListGroup>
                   ) : (
                     <ListGroup variant="flush">
                       {answers.map((answer) => (

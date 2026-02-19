@@ -49,6 +49,7 @@ export const PlayerView = ({
   const isMountedRef = useRef(true);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const realtimeConnectedRef = useRef(false);
+  const gameStateIdRef = useRef<string | null>(null);
 
   // ポーリングを開始する関数
   const startPolling = () => {
@@ -121,9 +122,9 @@ export const PlayerView = ({
       console.log('[Player] フェーズ変更: 回答再読み込み（answering）');
       loadAnswers();
       setHasVoted(false);
-    } else if (gameState?.phase === 'voting') {
-      // 投票フェーズになったら回答を再読み込み
-      console.log('[Player] フェーズ変更: 回答再読み込み（voting）');
+    } else if (gameState?.phase === 'revealing' || gameState?.phase === 'voting') {
+      // 開示・投票フェーズになったら回答を再読み込み
+      console.log('[Player] フェーズ変更: 回答再読み込み（revealing/voting）');
       loadAnswers();
     } else if (gameState?.phase === 'results') {
       // 結果表示フェーズでも回答を再読み込み
@@ -151,23 +152,25 @@ export const PlayerView = ({
     } else if (data) {
       console.log('[Player] game_state取得成功:', data);
       setGameState(data);
+      gameStateIdRef.current = data.id;
     } else {
       console.log('[Player] game_stateが見つかりません（まだ作成されていない可能性）');
     }
   };
 
   const loadAnswers = async () => {
-    if (!gameState?.id) {
-      console.log('[Player] loadAnswers: gameState.idが未設定のためスキップ');
+    const gsId = gameStateIdRef.current;
+    if (!gsId) {
+      console.log('[Player] loadAnswers: gameStateIdがないためスキップ');
       return;
     }
 
-    console.log('[Player] loadAnswers: game_state_id=', gameState.id);
+    console.log('[Player] loadAnswers: game_state_id=', gsId);
 
     const { data, error } = await supabase
       .from('lsore_answers')
       .select('*')
-      .eq('game_state_id', gameState.id)
+      .eq('game_state_id', gsId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -322,8 +325,6 @@ export const PlayerView = ({
   const revealedAnswers = answers.filter((a) => a.is_revealed);
   const canAnswer =
     gameState?.phase === 'answering' && !myAnswerData;
-  const canVote =
-    gameState?.phase === 'voting' && !hasVoted && revealedAnswers.length > 0;
 
   return (
     <Container className="py-4">
@@ -489,7 +490,7 @@ export const PlayerView = ({
                   key={answer.id}
                   className="d-flex justify-content-between align-items-center"
                 >
-                  <div>
+                  <div className="flex-grow-1">
                     <div>
                       <strong>{answer.user_name}</strong>
                     </div>
@@ -499,14 +500,14 @@ export const PlayerView = ({
                     {gameState.phase === 'results' && (
                       <Badge bg="primary">{answer.votes} 票</Badge>
                     )}
-                    {gameState.phase === 'voting' && canVote && (
+                    {gameState.phase === 'voting' && (
                       <Button
                         size="sm"
                         variant="outline-primary"
                         onClick={() => handleVote(answer.id)}
-                        disabled={hasVoted || answer.user_id === userId}
+                        disabled={hasVoted}
                       >
-                        投票
+                        {hasVoted ? '投票済み' : '投票'}
                       </Button>
                     )}
                   </div>
