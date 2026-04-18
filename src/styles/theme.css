@@ -25,6 +25,23 @@ body {
   min-height: 100vh;
 }
 
+.app-shell {
+  min-height: 100vh;
+}
+
+.site-logo-header {
+  width: 100%;
+  background-color: var(--secondary-color);
+  box-shadow: var(--shadow);
+}
+
+.site-logo-image {
+  display: block;
+  width: 80%;
+  height: auto;
+  margin: 0 auto;
+}
+
 /* Bootstrap ボタンのカスタマイズ */
 .btn-primary {
   background-color: var(--primary-color) !important;

@@ -155,7 +155,13 @@ function App() {
   };
 
   return (
-    <>
+    <div className="app-shell">
+      {appState === 'login' && (
+        <header className="site-logo-header" aria-label="えるそれっ！ロゴ">
+          <img src="/LsoreLogo.png" alt="えるそれっ！" className="site-logo-image" />
+        </header>
+      )}
+
       {appState === 'login' && <RoomLogin onJoinRoom={handleJoinRoom} />}
       {appState === 'lobby' && (
         <RoomLobby
@@ -182,7 +188,7 @@ function App() {
           onLeaveRoom={handleLeaveRoom}
         />
       )}
-    </>
+    </div>
   );
 }
 
